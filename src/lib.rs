@@ -587,7 +587,7 @@ impl<'h> Context<'h> {
 pub struct Editor<H: Helper, I: History> {
     term: Terminal,
     buffer: Option<Buffer>,
-    history: I,
+    pub history: I,
     helper: Option<H>,
     kill_ring: KillRing,
     config: Config,
