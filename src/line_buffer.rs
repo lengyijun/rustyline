@@ -143,6 +143,9 @@ impl LineBuffer {
     }
 
     /// Set cursor position (byte position)
+    ///
+    /// # Panics
+    /// when `pos` > lenngth
     pub fn set_pos(&mut self, pos: usize) {
         assert!(pos <= self.buf.len());
         self.pos = pos;
@@ -161,6 +164,9 @@ impl LineBuffer {
     }
 
     /// Set line content (`buf`) and cursor position (`pos`).
+    ///
+    /// # Panics
+    /// when `pos` > lenngth
     pub fn update<C: ChangeListener>(&mut self, buf: &str, pos: usize, cl: &mut C) {
         assert!(pos <= buf.len());
         let end = self.len();

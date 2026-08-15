@@ -51,7 +51,7 @@ fn get_win_size(fd: AltFd) -> (Unit, Unit) {
 
     unsafe {
         let mut size: libc::winsize = zeroed();
-        match win_size(fd.0, &mut size) {
+        match win_size(fd.0, &raw mut size) {
             Ok(0) => {
                 // In linux pseudo-terminals are created with dimensions of
                 // zero. If host application didn't initialize the correct
@@ -278,11 +278,11 @@ impl PosixRawReader {
     /// Handle \E <seq1> sequences
     // https://invisible-island.net/xterm/xterm-function-keys.html
     fn escape_sequence(&mut self) -> Result<KeyEvent> {
-        self._do_escape_sequence(true)
+        self.do_escape_sequence(true)
     }
 
     /// Don't call directly, call `PosixRawReader::escape_sequence` instead
-    fn _do_escape_sequence(&mut self, allow_recurse: bool) -> Result<KeyEvent> {
+    fn do_escape_sequence(&mut self, allow_recurse: bool) -> Result<KeyEvent> {
         // Read the next byte representing the escape sequence.
         let seq1 = self.next_char()?;
         if seq1 == '[' {
@@ -322,7 +322,7 @@ impl PosixRawReader {
                 Ok(false) | Err(_) => Ok(E::ESC),
                 Ok(true) => {
                     // recurse, and add the alt modifier.
-                    let E(k, m) = self._do_escape_sequence(false)?;
+                    let E(k, m) = self.do_escape_sequence(false)?;
                     Ok(E(k, m | M::ALT))
                 }
             }
@@ -769,7 +769,7 @@ impl PosixRawReader {
             let mut timeout = match timeout {
                 Some(pt) => pt
                     .as_millis()
-                    .map(|ms| nix::sys::time::TimeVal::milliseconds(ms as i64)),
+                    .map(|ms| nix::sys::time::TimeVal::milliseconds(i64::from(ms))),
                 None => None,
             };
             if let Err(err) = select::select(None, Some(&mut readfds), None, None, timeout.as_mut())
@@ -777,12 +777,10 @@ impl PosixRawReader {
                 if err == Errno::EINTR {
                     if let Some(signal) = self.tty_in.get_ref().sig()? {
                         return Err(ReadlineError::Signal(signal));
-                    } else {
-                        continue;
                     }
-                } else {
-                    return Err(err.into());
+                    continue;
                 }
+                return Err(err.into());
             }
             if sig_pipe.is_some_and(|fd| readfds.contains(fd)) {
                 if let Some(signal) = self.tty_in.get_ref().sig()? {
@@ -800,7 +798,7 @@ impl PosixRawReader {
                     target_os = "macos" => {
                         return Ok(Event::Timeout(true));
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
             } else if let Some(ref pipe_reader) = self.pipe_reader {
                 let mut guard = pipe_reader.lock().unwrap();
@@ -819,13 +817,11 @@ impl RawReader for PosixRawReader {
 
     fn wait_for_input(&mut self, single_esc_abort: bool) -> Result<Event> {
         cfg_select! {
-          feature = "signal-hook" => {
-              self.select(None, single_esc_abort)
-          }
-          _ => match self.pipe_reader {
-              Some(_) => self.select(None, single_esc_abort),
-              None => self.next_key(single_esc_abort).map(Event::KeyPress),
-          }
+            feature = "signal-hook" => self.select(None, single_esc_abort),
+            _ => match self.pipe_reader {
+                Some(_) => self.select(None, single_esc_abort),
+                None => self.next_key(single_esc_abort).map(Event::KeyPress),
+            },
         }
     }
 
@@ -887,9 +883,8 @@ impl RawReader for PosixRawReader {
                     let key = self.escape_sequence()?;
                     if key == E(K::BracketedPasteEnd, M::NONE) {
                         break;
-                    } else {
-                        continue; // TODO validate
                     }
+                    continue; // TODO validate
                 }
                 c => buffer.push(c),
             }
@@ -1284,11 +1279,11 @@ static SIG_PIPE: AtomicI32 = AtomicI32::new(-1);
 extern "C" fn sig_handler(sig: libc::c_int) {
     let b = error::Signal::to_byte(sig);
     let fd = SIG_PIPE.load(Ordering::Relaxed);
-    if fd != -1 {
-        let _ = write(AltFd(fd), &[b]);
-    } else {
+    if fd == -1 {
         // might not be safe to use in signal handler:
         // warn!(target: "rustyline", "cannot notify signal {sig}");
+    } else {
+        let _ = write(AltFd(fd), &[b]);
     }
 }
 
@@ -1349,10 +1344,10 @@ impl Sig {
                 let _ = unsafe { signal::sigaction(signal::SIGWINCH, &self.original_sigwinch)? };
                 close(self.pipe)?;
                 let fd = SIG_PIPE.swap(-1, Ordering::Relaxed);
-                if fd != -1 {
-                    close(fd)?;
-                } else {
+                if fd == -1 {
                     warn!(target: "rustyline", "Invalid `pipe_write`");
+                } else {
+                    close(fd)?;
                 }
             }
         }

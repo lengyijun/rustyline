@@ -169,6 +169,9 @@ fn width(gcm: GraphemeClusterMode, s: &str, esc_seq: &mut u8) -> Unit {
 /// External printer
 pub trait ExternalPrinter {
     /// Print message to stdout
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     fn print(&mut self, msg: String) -> Result<()>;
 }
 

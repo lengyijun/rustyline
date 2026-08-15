@@ -479,6 +479,7 @@ fn apply_backspace_direct(input: &str) -> String {
             }
         } else {
             out.push_str(g);
+            #[allow(clippy::cast_possible_truncation)]
             grapheme_sizes.push(g.len() as u8);
         }
     }
@@ -663,6 +664,9 @@ impl<H: Helper, I: History> Editor<H, I> {
     /// terminal.
     /// Otherwise (e.g., if `stdin` is a pipe or the terminal is not supported),
     /// it uses file-style interaction.
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     pub fn readline<P: Prompt + ?Sized>(&mut self, prompt: &P) -> Result<String> {
         self.readline_with(prompt, None)
     }
@@ -674,6 +678,9 @@ impl<H: Helper, I: History> Editor<H, I> {
     /// The string on the left of the tuple is what will appear to the left of
     /// the cursor and the string on the right is what will appear to the
     /// right of the cursor.
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     pub fn readline_with_initial<P: Prompt + ?Sized>(
         &mut self,
         prompt: &P,
@@ -837,26 +844,41 @@ impl<H: Helper, I: History> Editor<H, I> {
     }
 
     /// Load the history from the specified file.
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     pub fn load_history<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
         self.history.load(path.as_ref())
     }
 
     /// Save the history in the specified file.
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     pub fn save_history<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
         self.history.save(path.as_ref())
     }
 
     /// Append new entries in the specified file.
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     pub fn append_history<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
         self.history.append(path.as_ref())
     }
 
     /// Add a new entry in the history.
+    ///
+    /// # Errors
+    /// Will return `Err` if entry cannot be persisted
     pub fn add_history_entry<S: AsRef<str> + Into<String>>(&mut self, line: S) -> Result<bool> {
         self.history.add(line.as_ref())
     }
 
     /// Clear history.
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     pub fn clear_history(&mut self) -> Result<()> {
         self.history.clear()
     }
@@ -941,6 +963,9 @@ impl<H: Helper, I: History> Editor<H, I> {
     }
 
     /// Clear the screen.
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     pub fn clear_screen(&mut self) -> Result<()> {
         if self.term.is_output_tty() {
             let mut out = self.term.create_writer(&self.config);
@@ -956,6 +981,9 @@ impl<H: Helper, I: History> Editor<H, I> {
     }
 
     /// Change cursor visibility
+    ///
+    /// # Errors
+    /// Will return `Err` if an IO error occurs
     pub fn set_cursor_visibility(
         &mut self,
         visible: bool,

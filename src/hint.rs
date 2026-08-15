@@ -47,6 +47,7 @@ pub struct HistoryHinter {}
 
 impl HistoryHinter {
     /// Create a new `HistoryHinter`
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }

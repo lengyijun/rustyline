@@ -1128,9 +1128,8 @@ impl<'b> InputState<'b> {
         let num_args = self.num_args();
         if num_args < 0 {
             unreachable!()
-        } else {
-            num_args.unsigned_abs() as RepeatCount
         }
+        num_args.unsigned_abs() as RepeatCount
     }
 }
 
@@ -1160,7 +1159,7 @@ impl InputState<'_> {
                     None
                 }
             }
-            _ => None
+            _ => None,
         }
     }
 
@@ -1205,22 +1204,22 @@ impl InputState<'_> {
 
 cfg_select! {
     feature = "custom-bindings" => {
-pub type Bindings = radix_trie::Trie<Event, EventHandler>;
+        pub type Bindings = radix_trie::Trie<Event, EventHandler>;
     }
     _ => {
-enum Event {
-   KeySeq([KeyEvent; 1]),
-}
-impl From<KeyEvent> for Event {
-    fn from(k: KeyEvent) -> Self {
-        Self::KeySeq([k])
-    }
-}
-pub struct Bindings {}
-impl Bindings {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
+        enum Event {
+            KeySeq([KeyEvent; 1]),
+        }
+        impl From<KeyEvent> for Event {
+            fn from(k: KeyEvent) -> Self {
+                Self::KeySeq([k])
+            }
+        }
+        pub struct Bindings {}
+        impl Bindings {
+            pub fn new() -> Self {
+                Self {}
+            }
+        }
     }
 }
