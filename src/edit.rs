@@ -535,16 +535,6 @@ impl<H: Helper, P: Prompt + ?Sized> State<'_, '_, H, P> {
             end_shift: Unit,    // end of line shift (columns) after kill
             trivial: bool,      // true if a partial screen update can be done
         }
-        let mut proxy = Proxy {
-            changes: &mut self.changes,
-            kill_ring,
-            layout: &self.layout,
-            pos: self.line.pos(),
-            end: self.line.len(),
-            cursor_shift: 0,
-            end_shift: 0,
-            trivial: self.layout.cursor.row == self.layout.end.row,
-        };
         impl DeleteListener for Proxy<'_> {
             fn start_killing(&mut self) {
                 self.kill_ring.start_killing();
@@ -576,6 +566,16 @@ impl<H: Helper, P: Prompt + ?Sized> State<'_, '_, H, P> {
                 self.kill_ring.stop_killing();
             }
         }
+        let mut proxy = Proxy {
+            changes: &mut self.changes,
+            kill_ring,
+            layout: &self.layout,
+            pos: self.line.pos(),
+            end: self.line.len(),
+            cursor_shift: 0,
+            end_shift: 0,
+            trivial: self.layout.cursor.row == self.layout.end.row,
+        };
         if self.line.kill(mvt, &mut proxy) {
             let (trivial, cursor_shift, end_shift) =
                 (proxy.trivial, proxy.cursor_shift, proxy.end_shift);
