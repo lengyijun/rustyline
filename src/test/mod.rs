@@ -40,6 +40,8 @@ impl Completer for SimpleCompleter {
                 vec![line.to_owned() + "t"]
             } else if line == "\\hbar" {
                 vec!["ℏ".to_owned()]
+            } else if line == "ru" {
+                vec!["rust".to_owned(), "rush".to_owned()]
             } else {
                 vec![]
             },
@@ -85,6 +87,23 @@ fn complete_symbol() {
     assert_eq!(None, cmd);
     assert_eq!("ℏ", s.line.as_str());
     assert_eq!(3, s.line.pos());
+}
+
+#[test]
+fn complete_tab_confirms_display_all() {
+    let mut ed = Ed::new(SimpleCompleter);
+    let mut s = ed.init_state("ru", 2);
+    let mut is = Is::default();
+    is.config.set_completion_type(CompletionType::List);
+    is.config.set_completion_prompt_limit(1);
+    let mut input_state = is.input_state();
+    // First `Tab` triggers the "Display all N possibilities?" prompt,
+    // the second `Tab` answers it (like `y`).
+    let keys = vec![E(K::Tab, M::NONE), E(K::Tab, M::NONE)];
+    let mut rdr: IntoIter<KeyEvent> = keys.into_iter();
+    let cmd = super::complete_line(&mut rdr, &mut s, &mut input_state, &is.config).unwrap();
+    assert_eq!(None, cmd);
+    assert_eq!("rus", s.line.as_str());
 }
 
 // `keys`: keys to press
