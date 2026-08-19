@@ -49,12 +49,7 @@ impl Completer for SimpleCompleter {
 }
 impl Hinter for SimpleCompleter {
     type Hint = String;
-
-    fn hint(&self, _line: &str, _pos: usize, _ctx: &Context<'_>) -> Option<Self::Hint> {
-        None
-    }
 }
-
 impl Helper for SimpleCompleter {}
 impl Highlighter for SimpleCompleter {}
 impl Validator for SimpleCompleter {}
