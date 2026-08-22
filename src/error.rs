@@ -86,12 +86,12 @@ pub enum Signal {
 impl Signal {
     pub(crate) fn from(b: u8) -> Self {
         cfg_select! {
-          feature = "signal-hook" => Self::Resize,
-          _ => match b {
-              b'I' => Self::Interrupt,
-              b'W' => Self::Resize,
-              _ => unreachable!(),
-          }
+            feature = "signal-hook" => Self::Resize,
+            _ => match b {
+                b'I' => Self::Interrupt,
+                b'W' => Self::Resize,
+                _ => unreachable!(),
+            },
         }
     }
 

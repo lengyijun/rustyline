@@ -1215,11 +1215,25 @@ cfg_select! {
                 Self::KeySeq([k])
             }
         }
+        #[derive(Default)]
         pub struct Bindings {}
         impl Bindings {
             pub fn new() -> Self {
                 Self {}
             }
         }
+    }
+}
+
+#[cfg(test)]
+#[derive(Default)]
+pub struct Is {
+    pub config: Config,
+    bindings: Bindings,
+}
+#[cfg(test)]
+impl Is {
+    pub fn input_state(&self) -> InputState<'_> {
+        InputState::new(&self.config, &self.bindings)
     }
 }

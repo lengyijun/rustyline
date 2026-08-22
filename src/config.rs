@@ -678,3 +678,9 @@ pub trait Configurer {
         self.config_mut().set_enable_signals(enable_signals);
     }
 }
+
+impl Configurer for Config {
+    fn config_mut(&mut self) -> &mut Config {
+        self
+    }
+}
