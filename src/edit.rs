@@ -799,45 +799,58 @@ impl<H: Helper, P: Prompt + ?Sized> State<'_, '_, H, P> {
 }
 
 #[cfg(test)]
-pub fn init_state<'out, H: Helper>(
-    out: &'out mut <Terminal as Term>::Writer,
-    line: &str,
-    pos: usize,
-    helper: Option<&'out H>,
-    history: &'out crate::history::DefaultHistory,
-) -> State<'out, 'static, H, str> {
-    State {
-        out,
-        prompt: "",
-        prompt_size: Position::default(),
-        line: LineBuffer::init(line, pos),
-        layout: Layout::default(),
-        saved_line_for_history: LineBuffer::with_capacity(100),
-        byte_buffer: [0; 4],
-        changes: Changeset::new(),
-        helper,
-        ctx: Context::new(history),
-        hint: Some(Box::new("hint".to_owned())),
-        highlight_char: false,
+#[derive(Default)]
+pub struct Ed<H: Helper> {
+    out: crate::tty::Sink,
+    pub history: crate::history::DefaultHistory,
+    helper: Option<H>,
+}
+#[cfg(test)]
+impl<H: Helper> Ed<H> {
+    pub fn new(helper: H) -> Self {
+        Self {
+            out: crate::tty::Sink::default(),
+            history: crate::history::DefaultHistory::default(),
+            helper: Some(helper),
+        }
+    }
+
+    pub fn init_state<'out>(
+        &'out mut self,
+        line: &str,
+        pos: usize,
+    ) -> State<'out, 'static, H, str> {
+        State {
+            out: &mut self.out,
+            prompt: "",
+            prompt_size: Position::default(),
+            line: LineBuffer::init(line, pos),
+            layout: Layout::default(),
+            saved_line_for_history: LineBuffer::with_capacity(100),
+            byte_buffer: [0; 4],
+            changes: Changeset::new(),
+            helper: self.helper.as_ref(),
+            ctx: Context::new(&self.history),
+            hint: Some(Box::new("hint".to_owned())),
+            highlight_char: false,
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::init_state;
-    use crate::history::{DefaultHistory, History as _};
-    use crate::tty::Sink;
+    use super::Ed;
+    use crate::history::History as _;
 
     #[test]
     fn edit_history_next() {
-        let mut out = Sink::default();
-        let mut history = DefaultHistory::new();
-        history.add("line0").unwrap();
-        history.add("line1").unwrap();
+        let mut ed = Ed::<()>::default();
+        ed.history.add("line0").unwrap();
+        ed.history.add("line1").unwrap();
+        let history_len = ed.history.len();
         let line = "current edited line";
-        let helper: Option<()> = None;
-        let mut s = init_state(&mut out, line, 6, helper.as_ref(), &history);
-        s.ctx.history_index = history.len();
+        let mut s = ed.init_state(line, 6);
+        s.ctx.history_index = history_len;
 
         for _ in 0..2 {
             s.edit_history_next(false).unwrap();

@@ -1,14 +1,13 @@
 use std::vec::IntoIter;
 
 use crate::completion::Completer;
-use crate::config::{CompletionType, Config, EditMode};
-use crate::edit::init_state;
+use crate::config::{CompletionType, Config, Configurer as _, EditMode};
+use crate::edit::Ed;
 use crate::highlight::Highlighter;
 use crate::hint::Hinter;
 use crate::history::History as _;
-use crate::keymap::{Bindings, Cmd, InputState};
+use crate::keymap::{Cmd, Is};
 use crate::keys::{KeyCode as K, KeyEvent, KeyEvent as E, Modifiers as M};
-use crate::tty::Sink;
 use crate::validate::Validator;
 use crate::{Context, DefaultEditor, Helper, Result, apply_backspace_direct, readline_direct};
 
@@ -56,16 +55,13 @@ impl Validator for SimpleCompleter {}
 
 #[test]
 fn complete_line() {
-    let mut out = Sink::default();
-    let history = crate::history::DefaultHistory::new();
-    let helper = Some(SimpleCompleter);
-    let mut s = init_state(&mut out, "rus", 3, helper.as_ref(), &history);
-    let config = Config::default();
-    let bindings = Bindings::new();
-    let mut input_state = InputState::new(&config, &bindings);
+    let mut ed = Ed::new(SimpleCompleter);
+    let mut s = ed.init_state("rus", 3);
+    let is = Is::default();
+    let mut input_state = is.input_state();
     let keys = vec![E::ENTER];
     let mut rdr: IntoIter<KeyEvent> = keys.into_iter();
-    let cmd = super::complete_line(&mut rdr, &mut s, &mut input_state, &config).unwrap();
+    let cmd = super::complete_line(&mut rdr, &mut s, &mut input_state, &is.config).unwrap();
     assert_eq!(
         Some(Cmd::AcceptOrInsertLine {
             accept_in_the_middle: true
@@ -78,18 +74,14 @@ fn complete_line() {
 
 #[test]
 fn complete_symbol() {
-    let mut out = Sink::default();
-    let history = crate::history::DefaultHistory::new();
-    let helper = Some(SimpleCompleter);
-    let mut s = init_state(&mut out, "\\hbar", 5, helper.as_ref(), &history);
-    let config = Config::builder()
-        .completion_type(CompletionType::List)
-        .build();
-    let bindings = Bindings::new();
-    let mut input_state = InputState::new(&config, &bindings);
+    let mut ed = Ed::new(SimpleCompleter);
+    let mut s = ed.init_state("\\hbar", 5);
+    let mut is = Is::default();
+    is.config.set_completion_type(CompletionType::List);
+    let mut input_state = is.input_state();
     let keys = vec![E::ENTER];
     let mut rdr: IntoIter<KeyEvent> = keys.into_iter();
-    let cmd = super::complete_line(&mut rdr, &mut s, &mut input_state, &config).unwrap();
+    let cmd = super::complete_line(&mut rdr, &mut s, &mut input_state, &is.config).unwrap();
     assert_eq!(None, cmd);
     assert_eq!("ℏ", s.line.as_str());
     assert_eq!(3, s.line.pos());
