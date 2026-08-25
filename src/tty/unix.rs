@@ -1617,6 +1617,19 @@ mod termios_ {
 
         let original_mode = termios::tcgetattr(tty_in)?;
         let mut raw = original_mode.clone();
+
+        // https://linux.die.net/man/3/termios
+        // > The above symbolic subscript values are all different, except that VTIME,
+        // > VMIN may have the same value as VEOL, VEOF, respectively.
+        // > In noncanonical mode the special character meaning is replaced by the
+        // > timeout meaning.
+        // So we must read VEOF before writing VTIME
+        let mut key_map: HashMap<KeyEvent, Cmd> = HashMap::with_capacity(4);
+        map_key(&mut key_map, &raw, SCI::VEOF, "VEOF", Cmd::EndOfFile);
+        map_key(&mut key_map, &raw, SCI::VINTR, "VINTR", Cmd::Interrupt);
+        map_key(&mut key_map, &raw, SCI::VQUIT, "VQUIT", Cmd::Interrupt);
+        map_key(&mut key_map, &raw, SCI::VSUSP, "VSUSP", Cmd::Suspend);
+
         // disable BREAK interrupt, CR to NL conversion on input,
         // input parity check, strip high bit (bit 8), output flow control
         raw.input_flags &= !(InputFlags::BRKINT
@@ -1640,12 +1653,6 @@ mod termios_ {
 
         raw.control_chars[SCI::VMIN as usize] = 1; // One character-at-a-time input
         raw.control_chars[SCI::VTIME as usize] = 0; // with blocking read
-
-        let mut key_map: HashMap<KeyEvent, Cmd> = HashMap::with_capacity(4);
-        map_key(&mut key_map, &raw, SCI::VEOF, "VEOF", Cmd::EndOfFile);
-        map_key(&mut key_map, &raw, SCI::VINTR, "VINTR", Cmd::Interrupt);
-        map_key(&mut key_map, &raw, SCI::VQUIT, "VQUIT", Cmd::Interrupt);
-        map_key(&mut key_map, &raw, SCI::VSUSP, "VSUSP", Cmd::Suspend);
 
         termios::tcsetattr(tty_in, SetArg::TCSADRAIN, &raw)?;
         Ok((original_mode, key_map))
@@ -1678,6 +1685,19 @@ mod termios_ {
     pub fn enable_raw_mode(tty_in: AltFd, enable_signals: bool) -> Result<(Termios, PosixKeyMap)> {
         let original_mode = Termios::from_fd(tty_in.0)?;
         let mut raw = original_mode;
+
+        // https://linux.die.net/man/3/termios
+        // > The above symbolic subscript values are all different, except that VTIME,
+        // > VMIN may have the same value as VEOL, VEOF, respectively.
+        // > In noncanonical mode the special character meaning is replaced by the
+        // > timeout meaning.
+        // So we must read VEOF before writing VTIME
+        let mut key_map: HashMap<KeyEvent, Cmd> = HashMap::with_capacity(4);
+        map_key(&mut key_map, &raw, termios::VEOF, "VEOF", Cmd::EndOfFile);
+        map_key(&mut key_map, &raw, termios::VINTR, "VINTR", Cmd::Interrupt);
+        map_key(&mut key_map, &raw, termios::VQUIT, "VQUIT", Cmd::Interrupt);
+        map_key(&mut key_map, &raw, termios::VSUSP, "VSUSP", Cmd::Suspend);
+
         // disable BREAK interrupt, CR to NL conversion on input,
         // input parity check, strip high bit (bit 8), output flow control
         raw.c_iflag &=
@@ -1697,12 +1717,6 @@ mod termios_ {
 
         raw.c_cc[termios::VMIN] = 1; // One character-at-a-time input
         raw.c_cc[termios::VTIME] = 0; // with blocking read
-
-        let mut key_map: HashMap<KeyEvent, Cmd> = HashMap::with_capacity(4);
-        map_key(&mut key_map, &raw, termios::VEOF, "VEOF", Cmd::EndOfFile);
-        map_key(&mut key_map, &raw, termios::VINTR, "VINTR", Cmd::Interrupt);
-        map_key(&mut key_map, &raw, termios::VQUIT, "VQUIT", Cmd::Interrupt);
-        map_key(&mut key_map, &raw, termios::VSUSP, "VSUSP", Cmd::Suspend);
 
         termios::tcsetattr(tty_in.0, termios::TCSADRAIN, &raw)?;
         Ok((original_mode, key_map))
