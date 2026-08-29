@@ -199,20 +199,20 @@ COMMIT;
         let start = start + 1; // first rowid is 1
         let query = match (dir, start_with) {
             (SearchDirection::Forward, true) => {
-                "SELECT docid, entry FROM fts WHERE entry MATCH '^' || ?1 || '*'  AND docid >= ?2 \
-                 ORDER BY docid ASC LIMIT 1;"
+                "SELECT docid, entry FROM fts WHERE entry MATCH '^\"' || ?1 || '*\"'  AND docid >= \
+                 ?2 AND length(entry) >= length(?1) ORDER BY docid ASC LIMIT 1;"
             }
             (SearchDirection::Forward, false) => {
-                "SELECT docid, entry, offsets(fts) FROM fts WHERE entry MATCH ?1 || '*'  AND docid \
-                 >= ?2 ORDER BY docid ASC LIMIT 1;"
+                "SELECT docid, entry, offsets(fts) FROM fts WHERE entry MATCH '\"' || ?1 || '*\"'  \
+                 AND docid >= ?2 AND length(entry) >= length(?1) ORDER BY docid ASC LIMIT 1;"
             }
             (SearchDirection::Reverse, true) => {
-                "SELECT docid, entry FROM fts WHERE entry MATCH '^' || ?1 || '*'  AND docid <= ?2 \
-                 ORDER BY docid DESC LIMIT 1;"
+                "SELECT docid, entry FROM fts WHERE entry MATCH '^\"' || ?1 || '*\"'  AND docid <= \
+                 ?2 AND length(entry) >= length(?1) ORDER BY docid DESC LIMIT 1;"
             }
             (SearchDirection::Reverse, false) => {
-                "SELECT docid, entry, offsets(fts) FROM fts WHERE entry MATCH ?1 || '*'  AND docid \
-                 <= ?2 ORDER BY docid DESC LIMIT 1;"
+                "SELECT docid, entry, offsets(fts) FROM fts WHERE entry MATCH '\"' || ?1 || '*\"'  \
+                 AND docid <= ?2 AND length(entry) >= length(?1) ORDER BY docid DESC LIMIT 1;"
             }
         };
         let mut stmt = self.conn.prepare_cached(query)?;
@@ -601,6 +601,7 @@ mod tests {
         assert_eq!(None, h.search("", 0, SearchDirection::Forward)?);
         assert_eq!(None, h.search("none", 0, SearchDirection::Forward)?);
         assert_eq!(None, h.search("line", 3, SearchDirection::Forward)?);
+        assert_eq!(None, h.search("line1 ", 0, SearchDirection::Forward)?);
 
         assert_eq!(
             Some(SearchResult {
@@ -635,6 +636,7 @@ mod tests {
         assert_eq!(None, h.search("", 2, SearchDirection::Reverse)?);
         assert_eq!(None, h.search("none", 2, SearchDirection::Reverse)?);
         assert_eq!(None, h.search("line", 3, SearchDirection::Reverse)?);
+        assert_eq!(None, h.search("line1 ", 2, SearchDirection::Reverse)?);
 
         assert_eq!(
             Some(SearchResult {
@@ -675,6 +677,7 @@ mod tests {
             h.starts_with("LiNe", 2, SearchDirection::Reverse)?
         );
         assert_eq!(None, h.starts_with("iNe", 2, SearchDirection::Reverse)?);
+        assert_eq!(None, h.starts_with("line1 ", 2, SearchDirection::Reverse)?);
         Ok(())
     }
 }
